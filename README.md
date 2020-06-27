@@ -1,0 +1,3 @@
+# MyAsyncHttp
+一个基于epoll实现的简单的异步http框架
+由于本项目之目的是研究异步编程的底层原理，故未使用asyncio以及其他第三方库，单纯使用socket+epoll实现

@@ -1,1 +1,3 @@
 /.idea/
+/MyAsyncHttp/__pycache__/
+/MyAsyncHttp/async_io_utils/__pycache__/

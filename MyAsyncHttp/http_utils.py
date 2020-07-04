@@ -2,7 +2,6 @@ from .request import Request
 
 
 def parse_http_request(recv_data):
-    """为一个客户端服务"""
     request_lines = recv_data.splitlines()
     method, url, http_version = request_lines[0].split(' ')
     if method == "GET":
@@ -40,11 +39,9 @@ def parse_http_request(recv_data):
 
 
 def parse_http_response(recv_data):
-    """为一个客户端服务"""
     request_lines = recv_data.splitlines()
     http_version, status_code, status_info = request_lines[0].split(' ')
     status_code = int(status_code)
-
 
     headers = {}
     header_finish = False

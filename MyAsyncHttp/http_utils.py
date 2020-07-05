@@ -38,8 +38,28 @@ def parse_http_request(recv_data):
     return Request(end_point, method, http_version, headers, data, params)
 
 
-def parse_http_response(recv_data):
-    request_lines = recv_data.splitlines()
+def parse_http_header(recv_data):
+    request_lines = recv_data.decode('utf-8').splitlines()
+    http_version, status_code, status_info = request_lines[0].split(' ')
+    status_code = int(status_code)
+
+    headers = {}
+    header_finish = False
+    data = []
+    params = {}
+    for line in request_lines[1:]:
+        if line != "":
+            header_name, header_value = line.split(": ")
+            headers[header_name] = header_value
+        else:
+
+            break
+    return headers
+
+
+
+def parse_http_body(recv_data):
+    request_lines = recv_data.decode('utf-8').splitlines()
     http_version, status_code, status_info = request_lines[0].split(' ')
     status_code = int(status_code)
 
@@ -57,4 +77,5 @@ def parse_http_response(recv_data):
                 data.append(line)
         else:
             header_finish = True
-    return data
+            break
+    return headers

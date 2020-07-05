@@ -3,6 +3,8 @@ import queue
 
 fd_infos = {}
 write_buffer = defaultdict(queue.Queue)
+read_buffer = defaultdict(bytes)
+read_length_dict = {}
 
 
 def add_fd_infos(fd, obj, obj_type):

@@ -1,7 +1,7 @@
 from ..loop import get_event_loop
 import socket
 from .. import container
-from .. http_utils import parse_http_response
+from .. http_utils import parse_http_header
 import select
 import queue
 from collections import defaultdict
@@ -11,7 +11,7 @@ loop = get_event_loop()
 
 
 DEFAULT_HEADER = {
-    "CONNECTION": "close" #暂时不支持keep-alive
+    "CONNECTION": "close", #暂时不支持keep-alive
 }
 
 HTTP_VERSION = "HTTP/1.1"
@@ -38,14 +38,32 @@ def _epollin_event_callback(fd, event):
     else:
         print("可读:")
         try:
-            fd_callback_dict[fd]["success"](recv_data)
+            recv_str = recv_data
+            container.read_buffer[fd]+=recv_data
+            if b'\r\n\r\n' in container.read_buffer[fd]:#说明响应头已经收到了,解析响应头
+                head_finish_index = container.read_buffer[fd].index(b'\r\n\r\n')+4
+                body_start_index = head_finish_index
+                header = parse_http_header(container.read_buffer[fd][0:head_finish_index])
+                if header.get("Content-Length"):
+                    content_length = header.get("Content-Length")
+            body_data = container.read_buffer[fd][body_start_index:]
+            print(len(body_data))
+            if len(body_data) == int(content_length):
+                fd_callback_dict[fd]["success"](body_data)
+                loop.unregister(fd)
+                container.del_fd_infos(fd)
+
+
+
+
+            #fd_callback_dict[fd]["success"](recv_data)
             #response = parse_http_response(recv_data.decode('utf-8'))
 
             #print(response)
         except Exception as e:
+            print(tb.format_exc())
             error_stack_msg = tb.format_exc()
             logging.error(error_stack_msg)
-        finally:
             loop.unregister(fd)
             container.del_fd_infos(fd)
 

@@ -15,7 +15,7 @@ class Router(object):
             return fun
         return wrapper
 
-    def get_handle(self, end_point, method):
+    def get_handler(self, end_point, method):
         return self._rule_map[method][end_point]
 
     def has_end_point_method(self, end_point, method):

@@ -1,4 +1,3 @@
-from MyAsyncHttp.container import write_buffer
 import json
 
 
@@ -6,9 +5,10 @@ class HttpResponse(object):
 
     DEFAULT_STATUS_CODE = 200
 
-    def __init__(self,  fd):
+    def __init__(self,  fd, fm_manager):
         # 设置返回的头信息 header
         self._fd = fd
+        self._fm = fm_manager
         self.headers = {}
         self.status_code = HttpResponse.DEFAULT_STATUS_CODE
 
@@ -38,23 +38,30 @@ class HttpResponse(object):
             res += (header_name+":"+header_value+"\r\n")
         if data:
             res += "\r\n"
-            if isinstance(data, dict):
-                res+=json.dumps(data)
-            elif isinstance(data, int):
-                res+=str(int)
-            elif isinstance(data, str):
-                res+=data
-        res_bytes = res.encode('ascii')
-        write_buffer[self._fd].put_nowait(res_bytes)
+            if isinstance(data, bytes):
+                res_bytes = res.encode('ascii') + data
+            else:
+                res += "\r\n"
+                if isinstance(data, dict):
+                    res+=json.dumps(data)
+                elif isinstance(data, int):
+                    res+=str(int)
+                elif isinstance(data, str):
+                    res+=data
+                res_bytes = res.encode('ascii')
+        else:
+            res_bytes = res.encode('ascii')
+
+        self._fm[self._fd].write_buffer += res_bytes
 
 
 class HttpResponse404(HttpResponse):
-    def __init__(self, fd):
-        super().__init__(fd)
+    def __init__(self, fd, fm_manager):
+        super().__init__(fd, fm_manager)
         super().set_status_code(404)
 
 
 class HttpResponse500(HttpResponse):
-    def __init__(self, fd):
-        super().__init__(fd)
+    def __init__(self, fd, fm_manager):
+        super().__init__(fd, fm_manager)
         super().set_status_code(500)

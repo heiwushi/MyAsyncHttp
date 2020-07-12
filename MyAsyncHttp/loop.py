@@ -1,11 +1,11 @@
 import select
-import logging
-import traceback
+
 
 class Loop(object):
     def __init__(self):
         self.epoll = select.epoll()
         self.fd_event_callback_dict = dict()
+        self.running = False
 
     def unregister(self, fd):
         self.epoll.unregister(fd)
@@ -22,15 +22,16 @@ class Loop(object):
 
 
     def start(self):
-        while True:
-            events = self.epoll.poll(timeout=-1)
-            for fd, event in events:
-                callback = self.fd_event_callback_dict[str(fd) + str(event)]
-                callback(fd, event)
+        if not self.running:
+            while True:
+                self.running = True
+                events = self.epoll.poll()
+                for fd, event in events:
+                    callback = self.fd_event_callback_dict[str(fd) + str(event)]
+                    callback(fd, event)
 
 
 _loop = Loop()
-
 
 def get_event_loop():
     return _loop

@@ -1,7 +1,7 @@
 from ..loop import get_event_loop
 import socket
-from .. import container
-from .. http_utils import parse_http_header
+from ..fd_manger import FdManger
+from .. http_utils import parse_http_response_header
 import select
 import queue
 from collections import defaultdict
@@ -9,6 +9,7 @@ import traceback as tb
 import logging
 loop = get_event_loop()
 
+fd_manager = FdManger()
 
 DEFAULT_HEADER = {
     "CONNECTION": "close", #暂时不支持keep-alive
@@ -22,50 +23,46 @@ fd_callback_dict = defaultdict(dict)
 
 def _epollin_event_callback(fd, event):
     '''
-    有socket数据读入,即收到了http客户端发来的数据
+    有socket数据读入,即收到了访问的server发来的数据
     :param fd:
     :param event:
     :return:
     '''
 
-    event_socket, event_type = container.get_fd_infos(fd)
+    event_socket = fd_manager[fd].fd_file
     recv_data = event_socket.recv(1024)
     if len(recv_data) == 0:
-        print("连接断开")
         loop.unregister(fd)
         event_socket.close()
-        container.del_fd_infos(fd)
+        fd_manager.del_fd(fd)
     else:
-        print("可读:")
         try:
-            recv_str = recv_data
-            container.read_buffer[fd]+=recv_data
-            if b'\r\n\r\n' in container.read_buffer[fd]:#说明响应头已经收到了,解析响应头
-                head_finish_index = container.read_buffer[fd].index(b'\r\n\r\n')+4
+            fd_manager[fd].read_buffer += recv_data
+            if not fd_manager[fd].have_read_header and b'\r\n\r\n' in fd_manager[fd].read_buffer:#说明响应头已经收到了,解析响应头
+                head_finish_index = fd_manager[fd].read_buffer.index(b'\r\n\r\n')+4
                 body_start_index = head_finish_index
-                header = parse_http_header(container.read_buffer[fd][0:head_finish_index])
+                header_data = fd_manager[fd].read_buffer[0:head_finish_index]
+                fd_manager[fd].read_buffer = fd_manager[fd].read_buffer[body_start_index:]#只保留请求体部分
+                header = parse_http_response_header(header_data)
                 if header.get("Content-Length"):
-                    content_length = header.get("Content-Length")
-            body_data = container.read_buffer[fd][body_start_index:]
-            print(len(body_data))
-            if len(body_data) == int(content_length):
+                    content_length = int(header.get("Content-Length"))
+                    fd_manager[fd].read_content_length = content_length
+                    fd_manager[fd].have_read_header = True
+                else:
+                    #暂时要求响应头必须包含content-length
+                    raise Exception("content-length can't be empty")
+
+            if fd_manager[fd].have_read_header and len(fd_manager[fd].read_buffer) == fd_manager[fd].read_content_length:
+                body_data = fd_manager[fd].read_buffer
                 fd_callback_dict[fd]["success"](body_data)
                 loop.unregister(fd)
-                container.del_fd_infos(fd)
-
-
-
-
-            #fd_callback_dict[fd]["success"](recv_data)
-            #response = parse_http_response(recv_data.decode('utf-8'))
-
-            #print(response)
+                fd_manager.del_fd(fd)
         except Exception as e:
             print(tb.format_exc())
             error_stack_msg = tb.format_exc()
             logging.error(error_stack_msg)
             loop.unregister(fd)
-            container.del_fd_infos(fd)
+            fd_manager.del_fd(fd)
 
 def _epollout_event_callback(fd, event):
     '''
@@ -74,17 +71,12 @@ def _epollout_event_callback(fd, event):
     :param event:
     :return:
     '''
-    event_socket, event_type = container.get_fd_infos(fd)
-    try:
-        request_data = container.write_buffer[fd].get_nowait()
-        event_socket.send(request_data)
+    event_socket = fd_manager[fd].fd_file
+
+    if len(fd_manager[fd].write_buffer)>0:
+        event_socket.send(fd_manager[fd].write_buffer)
         loop.unregister(fd)
         loop.register(fd, select.EPOLLIN, _epollin_event_callback)
-
-    except queue.Empty as e:
-        event_socket.close()
-        loop.unregister(fd)
-        container.del_fd_infos(fd)
 
 
 def build_http_header_line(method, endpoint, header):
@@ -111,6 +103,8 @@ def request(method: str, url: str, header=None, success_callback=None, error_cal
 
         if len(url_splits) > 1:
             end_point = "/" + "/".join(url_splits[1:])
+        else:
+            end_point = "/"
         header=dict(header)
         header.update(DEFAULT_HEADER)
         header["HOST"]=address
@@ -121,8 +115,8 @@ def request(method: str, url: str, header=None, success_callback=None, error_cal
         fd = client_socket.fileno()
         fd_callback_dict[fd]["success"] = success_callback
         fd_callback_dict[fd]["error"] = error_callback
-        container.add_fd_infos(fd, client_socket, "socket")
-        container.write_buffer[fd].put_nowait(request_bytes)
+        fd_manager.add_fd(fd, client_socket, "socket")
+        fd_manager[fd].write_buffer+=request_bytes
         server_address = (address, port)
         client_socket.connect(server_address)
         client_socket.setblocking(False)

@@ -1,9 +1,8 @@
-from ..loop import get_event_loop
+from MyAsyncHttp.callback_version.loop import get_event_loop
 import socket
-from ..fd_manger import FdManger
-from .. http_utils import parse_http_response_header
+from MyAsyncHttp.callback_version.fd_manger import FdManger
+from MyAsyncHttp.callback_version.http_utils import parse_http_response_header
 import select
-import queue
 from collections import defaultdict
 import traceback as tb
 import logging
@@ -118,8 +117,11 @@ def request(method: str, url: str, header=None, success_callback=None, error_cal
         fd_manager.add_fd(fd, client_socket, "socket")
         fd_manager[fd].write_buffer+=request_bytes
         server_address = (address, port)
-        client_socket.connect(server_address)
         client_socket.setblocking(False)
+        try:
+            client_socket.connect(server_address)
+        except BlockingIOError as e:
+            pass
         loop.register(fd, select.EPOLLOUT, _epollout_event_callback)
         loop.start()
     except Exception as e:

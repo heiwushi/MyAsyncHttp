@@ -1,5 +1,8 @@
+
+import MyAsyncHttp
+MyAsyncHttp.use_callback_version()
 from MyAsyncHttp import Server,Request,HttpResponse
-import MyAsyncHttp.async_io_utils.async_http_request as async_http_request
+import MyAsyncHttp as async_http_request
 
 server = Server('127.0.0.1', 8000)
 

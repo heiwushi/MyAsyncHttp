@@ -57,7 +57,7 @@ def _epollin_event_callback(fd, event):
                 loop.unregister(fd)
                 fd_manager.del_fd(fd)
         except Exception as e:
-            print(tb.format_exc())
+            logging.error(tb.format_exc())
             error_stack_msg = tb.format_exc()
             logging.error(error_stack_msg)
             loop.unregister(fd)

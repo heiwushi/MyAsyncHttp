@@ -1,10 +1,4 @@
-_CALLBACK_VERSION = False
-
-def use_callback_version():
-    global _CALLBACK_VERSION
-    _CALLBACK_VERSION = True
-
-if _CALLBACK_VERSION:
-    from MyAsyncHttp.callback_version.request import Request
-    from MyAsyncHttp.callback_version.response import HttpResponse
-    from MyAsyncHttp.callback_version.server import Server
+from MyAsyncHttp.coroutine_version.request import Request
+from MyAsyncHttp.coroutine_version.response import HttpResponse
+from MyAsyncHttp.coroutine_version.server import Server
+import MyAsyncHttp.coroutine_version.async_io_utils as async_io

@@ -2,6 +2,7 @@ import select
 
 
 class Loop(object):
+
     def __init__(self):
         self.epoll = select.epoll()
         self.fd_event_callback_dict = dict()
@@ -26,7 +27,7 @@ class Loop(object):
                 self.running = True
                 events = self.epoll.poll()
                 for fd, event in events:
-                    callback = self.fd_event_callback_dict[str(fd) + " " +str(event)]
+                    callback = self.fd_event_callback_dict[str(fd) + " " + str(event)]
                     callback(fd, event)
 
 

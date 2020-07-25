@@ -1,4 +1,4 @@
-from MyAsyncHttp.coro_version.request import Request
+from MyAsyncHttp.coroutine_version.request import Request
 
 
 def parse_http_request(recv_data):
@@ -18,7 +18,6 @@ def parse_http_request(recv_data):
     data = []
     params = {}
     for line in request_lines[1:]:
-        print(line)
         if line != "":
             if header_finish:
                 header_name, header_value = line.split(":")

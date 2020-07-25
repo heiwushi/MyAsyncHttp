@@ -1,3 +1,7 @@
 /.idea/
 /MyAsyncHttp/__pycache__/
-/MyAsyncHttp/async_io_utils/__pycache__/
+/MyAsyncHttp/callback_version/__pycache__/
+/MyAsyncHttp/callback_version/async_io_utils/__pycache__/
+/MyAsyncHttp/coroutine_version/__pycache__/
+/MyAsyncHttp/coroutine_version/async_io_utils/__pycache__/
+/test/

@@ -1,29 +1,29 @@
-from MyAsyncHttp import Server,Request,HttpResponse
-import MyAsyncHttp.async_io_utils.async_http_request as async_http_request
+import logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+
+
+from MyAsyncHttp import Server,Request
+from MyAsyncHttp import async_io
 
 server = Server('127.0.0.1', 8000)
 
 @server.router.rule("/", method="GET")
-def index(request: Request, response: HttpResponse):
-    response.write("welcome to index")
+def index(request: Request):
+    import time
+    time.sleep(0)
+    return "welcome to index"
 
 @server.router.rule("/hello", method="GET")
-def hello(request: Request, response: HttpResponse):
+def hello(request: Request):
     name = request.params['name']
-    response.write("hello," + name)
+    return "hello," + name
 
 @server.router.rule("/baidu", method="GET")
-def baidu(request: Request, response: HttpResponse):
-    def success(data):
-        response.write(data)
-
-    def error(e, etb):
-        response.set_status_code(500)
-        response.write(etb)
-
+def baidu(request: Request):
     url = "http://www.baidu.com"
-    async_http_request.request("GET", url, header=[],
-                               success_callback=success, error_callback=error)
+    res_header, res_body = yield from async_io.http_request.request("GET", url, header=[])
+    return res_body
 
 
 server.start()

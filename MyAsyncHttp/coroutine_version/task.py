@@ -1,4 +1,4 @@
-from .furture import Future
+from .future import Future
 import logging
 
 class Task:

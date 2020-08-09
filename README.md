@@ -20,8 +20,6 @@ server = Server('127.0.0.1', 8000)
 
 @server.router.rule("/", method="GET")
 def index(request: Request):
-    import time
-    time.sleep(0)
     return "welcome to index"
 
 @server.router.rule("/hello", method="GET")
